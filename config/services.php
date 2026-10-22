@@ -21,6 +21,8 @@ return [
         'api_key' => env('CLOUDINARY_API_KEY'),
         'api_secret' => env('CLOUDINARY_API_SECRET'),
         'root_folder' => env('CLOUDINARY_ROOT_FOLDER', 'pilotwardrobe'),
+        // HTTPS delivery URLs; leave on (browsers block mixed content on the HTTPS SPA).
+        'secure' => (bool) env('CLOUDINARY_SECURE_URL', true),
         'webhook_secret' => env('CLOUDINARY_API_SECRET'),
     ],
 

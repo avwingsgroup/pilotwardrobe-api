@@ -80,7 +80,7 @@ final class CloudinaryMediaStorage implements MediaStorage
     public function url(Media $media, ?string $transformation = null, ?string $format = null): string
     {
         $segments = array_filter([
-            'https://res.cloudinary.com',
+            (($this->config['secure'] ?? true) ? 'https' : 'http').'://res.cloudinary.com',
             $this->config['cloud_name'],
             $media->resource_type,
             $media->delivery_type,
@@ -113,7 +113,7 @@ final class CloudinaryMediaStorage implements MediaStorage
                 'api_key' => $this->config['api_key'],
                 'api_secret' => $this->config['api_secret'],
             ],
-            'url' => ['secure' => true],
+            'url' => ['secure' => (bool) ($this->config['secure'] ?? true)],
             'api' => ['timeout' => 60, 'upload_timeout' => 120],
         ]);
     }
