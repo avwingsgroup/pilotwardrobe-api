@@ -52,6 +52,13 @@ final class PlatformBehaviourTest extends TestCase
         $this->call('GET', '/__client-ip', server: $spoof + ['REMOTE_ADDR' => '127.0.0.1'])->assertJsonPath('ip', '203.0.113.9');
     }
 
+    public function test_config_contains_only_cacheable_values(): void
+    {
+        // `php artisan config:cache` var_exports the whole config; objects without __set_state break deploys.
+        $exported = var_export(config()->all(), true);
+        $this->assertSame(config()->all(), eval("return {$exported};"));
+    }
+
     public function test_production_errors_never_leak_internals(): void
     {
         config(['app.debug' => false]);

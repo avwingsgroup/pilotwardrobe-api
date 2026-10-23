@@ -98,6 +98,14 @@ jobs:
       - name: Test suite
         run: php artisan test
 
+      - name: Production caches build (as deploy.sh runs them)
+        run: |
+          php artisan config:cache
+          php artisan route:cache
+          php artisan event:cache
+          php artisan view:cache
+          php artisan optimize:clear
+
       - name: OpenAPI document builds
         run: php artisan scramble:export --path=storage/app/openapi.json
 

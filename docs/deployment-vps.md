@@ -63,7 +63,7 @@ Add 2 GB of swap (protects against out-of-memory kills during `composer install`
 
 ```bash
 root$ fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-root$ echo '/swapfile none swap sw 0 0' >> /etc/fstab
+root$ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ---
@@ -196,9 +196,12 @@ deploy$ cp /tmp/pw/.env.example /var/www/pilotwardrobe-api/shared/.env && chmod 
 Allow `deploy` to reload PHP-FPM without a password (the deploy script needs it; OPcache does not re-read changed files on its own):
 
 ```bash
-root$ echo 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.5-fpm' > /etc/sudoers.d/pilotwardrobe-deploy
-root$ chmod 440 /etc/sudoers.d/pilotwardrobe-deploy && visudo -cf /etc/sudoers.d/pilotwardrobe-deploy
+$ echo 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.5-fpm' | sudo tee /etc/sudoers.d/pilotwardrobe-deploy
+$ sudo chmod 440 /etc/sudoers.d/pilotwardrobe-deploy && sudo visudo -cf /etc/sudoers.d/pilotwardrobe-deploy   # "parsed OK"
+$ sudo -n /usr/bin/systemctl reload php8.5-fpm && echo ok    # as deploy: must not ask for a password
 ```
+
+Use `sudo tee`, not `sudo echo … >`: the `>` redirection runs as your own user and is denied. Replace `deploy` with your user name if you run the app as a different user.
 
 ---
 
@@ -382,7 +385,7 @@ Nightly compressed database dump at 02:30 UTC, keeping 14 days locally:
 
 ```bash
 root$ mkdir -p /var/backups/pilotwardrobe && chown postgres:postgres /var/backups/pilotwardrobe && chmod 700 /var/backups/pilotwardrobe
-root$ cat > /etc/cron.d/pilotwardrobe-backup <<'EOF'
+root$ sudo tee /etc/cron.d/pilotwardrobe-backup <<'EOF'
 30 2 * * * postgres pg_dump -Fc pilotwardrobe > /var/backups/pilotwardrobe/pilotwardrobe-$(date +\%F).dump && find /var/backups/pilotwardrobe -name '*.dump' -mtime +14 -delete
 EOF
 ```
@@ -391,7 +394,7 @@ EOF
 
 ```bash
 root$ apt -y install rclone && rclone config        # create a remote, e.g. "offsite" (use rclone's crypt wrapper)
-root$ echo '15 3 * * * root rclone copy /var/backups/pilotwardrobe offsite:pilotwardrobe-db --max-age 48h' > /etc/cron.d/pilotwardrobe-offsite
+root$ echo '15 3 * * * root rclone copy /var/backups/pilotwardrobe offsite:pilotwardrobe-db --max-age 48h' | sudo tee /etc/cron.d/pilotwardrobe-offsite
 ```
 
 Also keep **outside the server**: a copy of `shared/.env` (in your password manager), and especially `APP_KEY`.

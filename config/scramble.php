@@ -3,7 +3,6 @@
 use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
 use Dedoc\Scramble\OpenApiVersion;
 use Dedoc\Scramble\SecurityDocumentation\MiddlewareAuthSecurityStrategy;
-use Dedoc\Scramble\Support\Generator\SecurityScheme;
 
 /*
  * OpenAPI 3.1 generated from routes, Form Requests and Resources by Scramble.
@@ -89,11 +88,7 @@ MD,
 
     'extensions' => [],
 
-    'security_strategy' => [
-        MiddlewareAuthSecurityStrategy::class,
-        [
-            'middleware' => ['auth', 'auth:*'],
-            'scheme' => SecurityScheme::http('bearer'),
-        ],
-    ],
+    // Bearer auth on routes with `auth`/`auth:*` middleware (the strategy's defaults). Keep this a
+    // class-string: objects here (e.g. SecurityScheme::http()) break `php artisan config:cache`.
+    'security_strategy' => MiddlewareAuthSecurityStrategy::class,
 ];
