@@ -287,6 +287,14 @@ deploy$ cd /var/www/pilotwardrobe-api/current
 deploy$ php artisan db:seed --class=ReferenceDataSeeder --force
 ```
 
+Give the storefront its images: uploads the bundled photos (`docs/PW-images`) to Cloudinary and attaches them to the hero slides and categories that have none. It never replaces an image set in the Control Tower and is safe to re-run (`--dry-run` previews):
+
+```bash
+deploy$ php artisan content:seed-images
+```
+
+Listings show photos once sellers create them; a fresh production install has no listings.
+
 Create the first Control Tower super admin (must be on `STAFF_EMAIL_DOMAIN`):
 
 ```bash

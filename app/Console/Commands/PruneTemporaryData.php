@@ -25,9 +25,10 @@ final class PruneTemporaryData extends Command
         $hours = (int) config('platform.media.unattached_ttl_hours');
         $removed = 0;
         Media::query()->whereNull('attachable_id')->where('created_at', '<', now()->subHours($hours))
-            // Avatars/covers are linked from users rather than attached.
+            // Avatars/covers (users) and category images are linked by column rather than attached.
             ->whereNotIn('id', DB::table('users')->whereNotNull('avatar_media_id')->select('avatar_media_id'))
             ->whereNotIn('id', DB::table('users')->whereNotNull('cover_media_id')->select('cover_media_id'))
+            ->whereNotIn('id', DB::table('categories')->whereNotNull('image_media_id')->select('image_media_id'))
             ->orderBy('id')->chunkById(200, function ($rows) use ($media, &$removed) {
                 foreach ($rows as $row) {
                     $media->delete($row);

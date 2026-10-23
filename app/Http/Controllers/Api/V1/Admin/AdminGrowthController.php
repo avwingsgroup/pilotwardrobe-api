@@ -168,8 +168,14 @@ final class AdminGrowthController extends Controller
         ], ['link.regex' => 'Links must be site paths like /marketplace.']);
         $slide = HeroSlide::query()->find($id) ?? throw ApiException::notFound('Slide not found.');
 
-        if (! empty($data['image_media_id']) && ! Media::query()->whereKey($data['image_media_id'])->whereIn('type', [MediaType::Content->value, MediaType::Listing->value])->exists()) {
+        $image = empty($data['image_media_id']) ? null
+            : Media::query()->whereKey($data['image_media_id'])->whereIn('type', [MediaType::Content->value, MediaType::Listing->value])->first();
+        if (! empty($data['image_media_id']) && $image === null) {
             throw ApiException::validation(['image_media_id' => 'Upload the image first.']);
+        }
+        // Claim a fresh upload so pilotwardrobe:prune (which removes unattached media) keeps it.
+        if ($image !== null && $image->attachable_id === null) {
+            $image->attachTo($slide, 'image');
         }
 
         $active = $data['active'] ?? null;
