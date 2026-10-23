@@ -19,9 +19,11 @@ final class HealthChecks
         return [
             'database' => $this->time(fn () => DB::select('select 1')),
             'cache' => $this->time(function () {
+                // A string token: Redis returns stored numbers as strings ("1"), so an int would never match.
                 $key = 'health:'.Str::random(8);
-                Cache::put($key, 1, 10);
-                if (Cache::pull($key) !== 1) {
+                $token = Str::random(16);
+                Cache::put($key, $token, 10);
+                if (Cache::pull($key) !== $token) {
                     throw new \RuntimeException('cache round-trip failed');
                 }
             }),

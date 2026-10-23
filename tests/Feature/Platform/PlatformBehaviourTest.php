@@ -7,7 +7,9 @@ namespace Tests\Feature\Platform;
 use App\Models\Listing;
 use App\Models\MaintenanceWindow;
 use App\Models\User;
+use Illuminate\Cache\ArrayStore;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -32,6 +34,24 @@ final class PlatformBehaviourTest extends TestCase
         $response = $this->getJson('/health')->assertOk()->assertJsonPath('status', 'ok');
         $this->assertSame(['database', 'cache', 'queue'], array_keys($response->json('checks')));
         $this->assertStringNotContainsString(config('database.connections.pgsql.password') ?: '__none__', $response->getContent());
+    }
+
+    public function test_health_cache_check_works_with_redis_style_string_values(): void
+    {
+        // Redis returns stored numbers as strings ("1"); the array store used in tests does not.
+        Cache::extend('redis-like', fn () => Cache::repository(new class extends ArrayStore
+        {
+            public function get($key)
+            {
+                $value = parent::get($key);
+
+                return is_int($value) || is_float($value) ? (string) $value : $value;
+            }
+        }));
+        config(['cache.stores.redis-like' => ['driver' => 'redis-like']]);
+        Cache::setDefaultDriver('redis-like');
+
+        $this->getJson('/health')->assertOk()->assertJsonPath('checks.cache.status', 'up');
     }
 
     public function test_home_route_is_the_health_check_without_a_session(): void
