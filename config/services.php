@@ -130,7 +130,7 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI', rtrim((string) env('APP_FRONTEND_URL', 'http://localhost:5173'), '/').'/auth/google/callback'),
         // Staff Control Tower sign-in (Google Workspace, restricted to STAFF_EMAIL_DOMAIN).
-        'staff_client_id' => env('GOOGLE_STAFF_CLIENT_ID', env('GOOGLE_CLIENT_ID')),
+        'staff_client_id' => env('GOOGLE_STAFF_CLIENT_ID') ?: env('GOOGLE_CLIENT_ID'),
     ],
 
     'facebook' => [

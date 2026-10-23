@@ -13,7 +13,8 @@ return [
 
     'allowed_origins' => array_values(array_filter(array_map(
         fn (string $origin) => rtrim(trim($origin), '/'),
-        explode(',', (string) env('CORS_ALLOWED_ORIGINS', env('APP_FRONTEND_URL', 'http://localhost:5173'))),
+        // `?:` so an empty CORS_ALLOWED_ORIGINS= (as in .env.example) falls back too.
+        explode(',', (string) (env('CORS_ALLOWED_ORIGINS') ?: env('APP_FRONTEND_URL', 'http://localhost:5173'))),
     ))),
 
     'allowed_origins_patterns' => [],
