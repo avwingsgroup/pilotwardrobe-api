@@ -445,6 +445,70 @@ The script keeps the last 5 releases.
 | Run one sweep by hand | `php artisan marketplace:sweep payouts` |
 | OS security updates | applied automatically (unattended-upgrades); reboot when `/var/run/reboot-required` exists |
 
+---
+
+## 16. Automatic deploys from GitHub (push to `main`)
+
+Once this is set up, every push to `main` deploys itself: GitHub Actions runs the checks (Pint, Larastan, audit, migrations, tests), and **only if they all pass** the `Deploy to production (VPS)` job connects to the server over SSH and runs `deploy.sh main`. A failed check means no deploy; a deploy whose health check fails marks the run as failed (the previous release stays available via `deploy.sh --rollback`). Deploys never overlap and are never cancelled halfway by a newer push. Until the secrets below are added, the deploy job is skipped with a warning (CI stays green); if only some are set, it fails and names the missing ones.
+
+The workflow uses a **dedicated SSH key that can do exactly one thing on the server: run the deploy**. Even if the key leaked, it could not open a shell, forward ports or run anything else.
+
+Replace `/var/www/pilotwardrobe-api` below with your app folder if it differs, and `deploy` with your user.
+
+**1. Create the deploy key (on the VPS, as the app user):**
+
+```bash
+deploy$ ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/github-actions-deploy -N ""
+```
+
+**2. Authorise it for the deploy command only:**
+
+```bash
+deploy$ echo "restrict,command=\"/var/www/pilotwardrobe-api/deploy.sh main\" $(cat ~/github-actions-deploy.pub)" >> ~/.ssh/authorized_keys
+deploy$ tail -1 ~/.ssh/authorized_keys     # restrict,command="…/deploy.sh main" ssh-ed25519 AAAA… github-actions-deploy
+```
+
+`restrict` turns off shells, port forwarding and agent forwarding for this key; `command=` makes the server run the deploy script whatever the client asks for. Your own login key (step 1) is unaffected.
+
+**3. Copy the private key into GitHub, then delete it from the server:**
+
+```bash
+deploy$ cat ~/github-actions-deploy           # copy everything, including the BEGIN/END lines
+deploy$ shred -u ~/github-actions-deploy && rm ~/github-actions-deploy.pub
+```
+
+**4. Get the server's host key** (so GitHub can verify it is talking to your server, not an impostor). Run on your own computer:
+
+```bash
+ssh-keyscan -p 22 YOUR_SERVER_IP 2>/dev/null        # macOS / Linux / Git Bash
+ssh-keyscan -p 22 YOUR_SERVER_IP 2>$null             # Windows PowerShell
+```
+
+Cross-check one fingerprint against the server itself, `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` (on the VPS), and `ssh-keyscan -p 22 YOUR_SERVER_IP 2>/dev/null | ssh-keygen -lf -` (on your computer): the `ED25519` lines must show the same `SHA256:…`.
+
+**5. Add the secrets in GitHub:** *avwingsgroup/pilotwardrobe-api → Settings → Secrets and variables → Actions → New repository secret*
+
+| Secret | Value |
+|---|---|
+| `VPS_HOST` | the server IP (or hostname): **the same value you passed to `ssh-keyscan`** |
+| `VPS_USER` | `deploy` (or your app user, e.g. `usir`) |
+| `VPS_PORT` | only if SSH is not on port 22 |
+| `VPS_SSH_KEY` | the private key from step 3 |
+| `VPS_KNOWN_HOSTS` | the full output of `ssh-keyscan` from step 4 |
+
+**6. Optional: require a manual approval.** *Settings → Environments → production → Required reviewers*. The deploy job then waits for a click on **Review deployments** before running. The `production` environment is created automatically on the first run.
+
+**7. One-time refresh of the installed script.** From now on every deploy refreshes `deploy.sh` from the release it deployed, but the copy installed before this feature existed still needs one manual update (after the commit that added this section is deployed):
+
+```bash
+deploy$ /var/www/pilotwardrobe-api/deploy.sh main
+deploy$ install -m 755 /var/www/pilotwardrobe-api/current/deploy/vps/deploy.sh /var/www/pilotwardrobe-api/deploy.sh
+```
+
+**Watch a deploy:** *GitHub → Actions → CI → latest run → Deploy to production (VPS)* shows the same output as running the script by hand. To deploy without a code change, re-run that job from the Actions page. Manual deploys and rollbacks on the server still work exactly as before.
+
+If SSH on the server is restricted to certain IP addresses (provider firewall or `ufw allow from …`), GitHub's runners will be blocked: their IPs change, so key-only access (as set up here) is the practical choice.
+
 ## Troubleshooting
 
 | Symptom | Likely cause and fix |
@@ -457,3 +521,6 @@ The script keeps the last 5 releases.
 | SPA gets 419 or CORS errors | `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS` and `CORS_ALLOWED_ORIGINS` must match the SPA's real domain; both sites must use HTTPS |
 | Every visitor shares one rate limit / IP shows `127.0.0.1` | A proxy in front of Nginx (Cloudflare, load balancer) isn't trusted: add its IP ranges to `TRUSTED_PROXIES` |
 | `Permission denied` under `storage/` | PHP-FPM must run as `deploy` (step 2) and `shared/storage` must be owned by `deploy` |
+| `Missing repository secrets` in the deploy job | Add the secrets from step 16.5 (names are case-sensitive) |
+| Deploy job: `Host key verification failed` | `VPS_KNOWN_HOSTS` does not match `VPS_HOST` (use the same IP/hostname for both) or the server was rebuilt; redo step 16.4 |
+| Deploy job: `Permission denied (publickey)` | The public key line is missing from `~/.ssh/authorized_keys`, or `VPS_SSH_KEY` was pasted without its BEGIN/END lines |

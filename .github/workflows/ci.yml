@@ -7,7 +7,8 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel runs on main: a newer push must not kill a deploy halfway through.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -123,3 +124,58 @@ jobs:
           tags: pilotwardrobe-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Continuous deployment: every push to main that passes the checks above is deployed to
+  # the VPS by running deploy/vps/deploy.sh there over SSH. The server only accepts this key
+  # for that one command (forced command in authorized_keys), see docs/deployment-vps.md §16.
+  deploy:
+    name: Deploy to production (VPS)
+    needs: [quality, tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    timeout-minutes: 20
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+    steps:
+      - name: Check deployment secrets
+        id: secrets
+        run: |
+          missing=""; present=0
+          for name in VPS_HOST VPS_USER VPS_SSH_KEY VPS_KNOWN_HOSTS; do
+            if [ -n "${!name}" ]; then present=$((present + 1)); else missing="$missing $name"; fi
+          done
+          if [ "$present" -eq 0 ]; then
+            echo "::warning::Automatic deploy is not configured yet: add the VPS_* secrets (docs/deployment-vps.md §16). Skipping."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          elif [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (see docs/deployment-vps.md §16)"
+            exit 1
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure SSH
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy ${{ github.sha }}
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${VPS_PORT:-22}" \
+              -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+              "$VPS_USER@$VPS_HOST" deploy
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

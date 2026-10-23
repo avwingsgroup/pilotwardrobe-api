@@ -68,13 +68,22 @@ finish
 
 echo "==> Health check"
 APP_HOST=$(grep -E '^APP_URL=' shared/.env | cut -d= -f2- | tr -d '"' | sed -E 's#^https?://##; s#/.*$##')
+HEALTHY=1
 if curl -fsS --max-time 10 --resolve "$APP_HOST:443:127.0.0.1" "https://$APP_HOST/health" >/dev/null; then
     echo "Healthy."
 else
+    HEALTHY=0
     echo "WARNING: https://$APP_HOST/health did not return 200; check shared/storage/logs and consider: deploy.sh --rollback"
 fi
 
 echo "==> Removing old releases (keeping $KEEP)"
 ls -1d releases/* | sort | head -n -"$KEEP" | xargs -r rm -rf
 
+echo "==> Updating the installed deploy script from this release"
+# Write a temp file and rename it, so this running copy (already open) is unaffected.
+cp current/deploy/vps/deploy.sh "$APP_DIR/deploy.sh.new" && chmod 755 "$APP_DIR/deploy.sh.new" \
+    && mv -f "$APP_DIR/deploy.sh.new" "$APP_DIR/deploy.sh"
+
 echo "Deployed $BRANCH ($(git -C current rev-parse --short HEAD))."
+# Non-zero exit so an unattended (CI) deploy shows as failed when the app is unhealthy.
+[[ $HEALTHY == 1 ]] || exit 1
