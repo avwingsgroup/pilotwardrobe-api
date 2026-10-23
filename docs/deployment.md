@@ -1,6 +1,6 @@
 # Deployment
 
-How to run the Pilotwardrobe API in production, plus backup and recovery. Security settings: [security.md](security.md). Provider setup: [integrations.md](integrations.md).
+How to run the Pilotwardrobe API in production with containers, plus backup and recovery. For a single Ubuntu VPS without Docker, follow [deployment-vps.md](deployment-vps.md). Security settings: [security.md](security.md). Provider setup: [integrations.md](integrations.md).
 
 > The Dockerfile, Compose file and CI workflow in this repository were written but **not executed** in the development environment (Docker was not installed there, and the workflow has not run on GitHub yet). Build and run them once in staging before relying on them.
 

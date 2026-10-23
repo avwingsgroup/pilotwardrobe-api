@@ -14,11 +14,15 @@
 
 return [
 
-    // Serve /api/documentation and /openapi to anyone (otherwise staff only outside local).
     // Receives Horizon long-queue-wait alerts.
     'ops_alert_email' => env('OPS_ALERT_EMAIL'),
 
+    // Serve /api/documentation and /openapi to anyone (otherwise staff only outside local).
     'api_docs_public' => (bool) env('API_DOCS_PUBLIC', false),
+
+    // Proxies allowed to set X-Forwarded-* (client IP, scheme): comma-separated IPs/CIDRs, or `*`.
+    // Default trusts only a reverse proxy on the same host (Nginx on the VPS).
+    'trusted_proxies' => env('TRUSTED_PROXIES') ?: '127.0.0.1,::1',
 
     'frontend_url' => rtrim((string) env('APP_FRONTEND_URL', 'http://localhost:5173'), '/'),
 

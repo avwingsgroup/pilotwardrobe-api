@@ -76,7 +76,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // API clients never get redirected to a login page.
         $middleware->redirectGuestsTo(fn () => null);
 
-        $middleware->trustProxies(at: env('TRUSTED_PROXIES', '*'));
+        // Trusted proxies come from config('platform.trusted_proxies'), applied in AppServiceProvider:
+        // env() here would be ignored once config is cached in production.
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         ApiExceptionRenderer::register($exceptions);

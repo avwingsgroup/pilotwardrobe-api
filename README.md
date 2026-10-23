@@ -75,7 +75,8 @@ Staff password login works only with `STAFF_PASSWORD_LOGIN=true` (local default 
 | [database-schema.md](docs/database-schema.md) | ER diagrams, constraints, indexes, triggers |
 | [integrations.md](docs/integrations.md) | Each provider, webhook verification, sandbox checklists |
 | [security.md](docs/security.md) | Authentication, authorisation, money safety, PII, hardening |
-| [deployment.md](docs/deployment.md) | Topology, release procedure, production checklist, backup and recovery |
+| [deployment-vps.md](docs/deployment-vps.md) | Step-by-step production setup on a single Ubuntu VPS (Nginx, PHP-FPM 8.5, PostgreSQL, Redis, Horizon), zero-downtime deploys and rollback |
+| [deployment.md](docs/deployment.md) | Container topology, release procedure, production checklist, backup and recovery |
 | [backend-implementation-notes.md](docs/backend-implementation-notes.md) | Decisions and assumptions (D1–D23) and what is not implemented |
 | [verification-checklist.md](docs/verification-checklist.md) | Final verification status, item by item |
 

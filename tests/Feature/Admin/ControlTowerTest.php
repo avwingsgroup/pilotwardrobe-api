@@ -178,6 +178,21 @@ final class ControlTowerTest extends TestCase
         $this->assertFalse($staff->hasPermission('users.suspend'));
     }
 
+    public function test_console_bootstraps_first_super_admin_on_staff_domain_only(): void
+    {
+        config(['platform.staff_email_domain' => 'pilotwardrobe.com']);
+
+        $this->artisan('staff:create-super-admin', ['email' => 'ops@gmail.com'])->assertFailed();
+        $this->artisan('staff:create-super-admin', ['email' => 'Ops@Pilotwardrobe.com', '--first-name' => 'Tolu', '--last-name' => 'Ade'])->assertSuccessful();
+        $this->artisan('staff:create-super-admin', ['email' => 'ops@pilotwardrobe.com'])->assertFailed();
+
+        $admin = User::query()->where('email', 'ops@pilotwardrobe.com')->firstOrFail();
+        $this->assertTrue($admin->isSuperAdmin());
+        $this->assertSame(UserStatus::Active, $admin->status);
+        $this->assertNotNull($admin->email_verified_at);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'STAFF.SUPER_ADMIN_BOOTSTRAPPED']);
+    }
+
     public function test_audit_log_rows_are_immutable_at_database_level(): void
     {
         $log = app(AuditLogger::class)->log('TEST.EVENT', 'something');

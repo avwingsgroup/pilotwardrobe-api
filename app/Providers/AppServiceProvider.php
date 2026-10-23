@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\ColumnDefinition;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -56,6 +57,9 @@ class AppServiceProvider extends ServiceProvider
         Model::preventSilentlyDiscardingAttributes(! $this->app->isProduction());
         // Relations touched on one model of a collection are eager-loaded for the whole collection (no N+1).
         Model::automaticallyEagerLoadRelationships();
+
+        // Read from config (not env) so it still applies when config is cached in production.
+        TrustProxies::at((string) config('platform.trusted_proxies'));
 
         // Short, stable morph names instead of class names in polymorphic columns.
         Relation::enforceMorphMap([

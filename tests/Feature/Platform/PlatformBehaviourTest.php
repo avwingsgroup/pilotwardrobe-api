@@ -41,6 +41,17 @@ final class PlatformBehaviourTest extends TestCase
         $response->assertCookieMissing(config('session.cookie'));
     }
 
+    public function test_forwarded_client_ip_is_trusted_only_from_configured_proxies(): void
+    {
+        Route::get('/__client-ip', fn () => response()->json(['ip' => request()->ip()]));
+        $spoof = ['HTTP_X_FORWARDED_FOR' => '203.0.113.9'];
+
+        // A client cannot fake its IP (rate limits, audit trail) by sending the header itself.
+        $this->call('GET', '/__client-ip', server: $spoof + ['REMOTE_ADDR' => '198.51.100.7'])->assertJsonPath('ip', '198.51.100.7');
+        // Nginx on the same host is trusted by default and passes the real client IP.
+        $this->call('GET', '/__client-ip', server: $spoof + ['REMOTE_ADDR' => '127.0.0.1'])->assertJsonPath('ip', '203.0.113.9');
+    }
+
     public function test_production_errors_never_leak_internals(): void
     {
         config(['app.debug' => false]);
