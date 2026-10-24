@@ -83,9 +83,12 @@ final class HangarController extends Controller
             ];
         }
 
-        // Rating as it stood 30 days ago, for the trend arrow (null without older reviews).
-        $previousRating = Review::query()->where('subject_id', $user->id)->where('is_hidden', false)
+        // Rating as it stood 30 days ago, for the trend. Always a number (the SPA formats it): without
+        // older reviews there is no change to show, so it equals the current rating.
+        $sellerRating = round((float) $user->rating_avg, 1);
+        $olderAverage = Review::query()->where('subject_id', $user->id)->where('is_hidden', false)
             ->where('created_at', '<', now()->subDays(30))->avg('rating');
+        $previousRating = $olderAverage !== null ? round((float) $olderAverage, 1) : $sellerRating;
 
         return ApiResponse::ok([
             'seller_since' => $user->created_at?->toIso8601ZuluString(),
@@ -98,8 +101,8 @@ final class HangarController extends Controller
                 'week_delta' => $money($weekDelta),
                 'live_listings' => $liveCount,
                 'listings_need_photos' => $needPhotos,
-                'seller_rating' => round((float) $user->rating_avg, 1),
-                'previous_rating' => $previousRating !== null ? round((float) $previousRating, 1) : null,
+                'seller_rating' => $sellerRating,
+                'previous_rating' => $previousRating,
                 'reviews_count' => (int) $user->reviews_count,
             ],
             'wallet' => ['total' => $money($available + $escrow + $pending), 'available' => $money($available), 'in_escrow' => $money($escrow)],
