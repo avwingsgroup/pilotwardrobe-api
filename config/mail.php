@@ -123,4 +123,7 @@ return [
     // Inbox paged when a contact-form message is filed under Trust & Safety.
     'trust_safety_address' => env('TRUST_SAFETY_EMAIL'),
 
+    // Header logo in every e-mail: must be a public HTTPS URL. Defaults to {APP_URL}/images/email-logo.png.
+    'logo_url' => env('MAIL_LOGO_URL') ?: null,
+
 ];

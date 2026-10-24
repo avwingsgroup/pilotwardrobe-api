@@ -12,8 +12,17 @@
         <td align="center">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;">
                 <tr>
-                    <td style="background:#13294b;padding:20px 28px;">
-                        <a href="{{ $frontendUrl }}" style="color:#ffffff;text-decoration:none;font-weight:700;font-size:18px;letter-spacing:.3px;">Pilotwardrobe</a>
+                    <td style="background:#13294b;padding:16px 28px;">
+                        <a href="{{ $frontendUrl }}" style="text-decoration:none;">
+                            <table role="presentation" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="vertical-align:middle;padding-right:12px;">
+                                        <img src="{{ $logoUrl }}" width="84" height="41" alt="Pilotwardrobe" style="display:block;border:0;outline:none;width:84px;height:41px;">
+                                    </td>
+                                    <td style="vertical-align:middle;color:#ffffff;font-weight:700;font-size:18px;letter-spacing:.3px;">Pilotwardrobe</td>
+                                </tr>
+                            </table>
+                        </a>
                     </td>
                 </tr>
                 <tr>

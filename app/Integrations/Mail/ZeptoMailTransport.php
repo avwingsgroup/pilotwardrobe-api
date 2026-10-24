@@ -19,12 +19,16 @@ use Symfony\Component\Mime\MessageConverter;
  */
 final class ZeptoMailTransport extends AbstractTransport
 {
+    private readonly string $token;
+
     public function __construct(
-        private readonly string $token,
+        string $token,
         private readonly string $endpoint = 'https://api.zeptomail.com/v1.1/email',
         private readonly ?string $bounceAddress = null,
     ) {
         parent::__construct();
+        // Accept the key with or without the "Zoho-enczapikey " prefix shown in the ZeptoMail console.
+        $this->token = trim((string) preg_replace('/^\s*Zoho-enczapikey\s+/i', '', $token));
     }
 
     protected function doSend(SentMessage $message): void

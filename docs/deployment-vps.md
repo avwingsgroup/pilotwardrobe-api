@@ -389,6 +389,8 @@ deploy$ curl -s -o /dev/null -w '%{http_code}\n' https://api.YOURDOMAIN.com/open
 
 ## 13. Backups
 
+> **Non-default PostgreSQL port?** The commands below assume 5432. If `DB_PORT` in `shared/.env` is different (e.g. 5433, common when two PostgreSQL versions are installed; `pg_lsclusters` shows them), add `-p 5433` to every `pg_dump`, `pg_restore`, `createdb` and `psql` command.
+
 Nightly compressed database dump at 02:30 UTC, keeping 14 days locally:
 
 ```bash
@@ -530,6 +532,8 @@ The demo data is removed by **restoring a database backup taken just before seed
 - While seeding, notifications are written to the log instead of being sent (the demo e-mails and phone numbers aren't real customers).
 
 Run everything as the app user, from the app folder (replace `/var/www/pilotwardrobe-api` and the database name if yours differ):
+
+> **Non-default PostgreSQL port?** The commands in this section assume 5432. If `DB_PORT` in `shared/.env` is different (e.g. 5433, common when two PostgreSQL versions are installed; `pg_lsclusters` shows them), add `-p 5433` to every `pg_dump`, `pg_restore`, `createdb` and `psql` command.
 
 **1. Back up the database**
 

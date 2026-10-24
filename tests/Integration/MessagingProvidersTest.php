@@ -95,10 +95,33 @@ final class MessagingProvidersTest extends TestCase
             && $r['subject'] === 'Hello' && $r['to'][0]['email_address']['address'] === 'ada@example.com' && $r['htmlbody'] === '<p>Hi</p>');
     }
 
+    public function test_zeptomail_token_may_include_the_console_prefix(): void
+    {
+        Http::fake(['api.zeptomail.com/*' => Http::response(['request_id' => 'req-2'], 201)]);
+        $transport = new ZeptoMailTransport('Zoho-enczapikey zm-token');
+        $email = (new Email)->from(new Address('no-reply@pilotwardrobe.com'))->to('ada@example.com')->subject('Hi')->text('Hi');
+
+        $transport->send($email, new Envelope(new Address('no-reply@pilotwardrobe.com'), [new Address('ada@example.com')]));
+
+        Http::assertSent(fn (HttpRequest $r) => $r->hasHeader('Authorization', 'Zoho-enczapikey zm-token'));
+    }
+
     public function test_transactional_mail_has_html_and_text_parts(): void
     {
         $mail = new TransactionalMail(['subject' => 'Order #PW-1 confirmed', 'heading' => 'Payment secured', 'lines' => ['We received $190.61.'], 'cta' => ['label' => 'Track order', 'url' => 'https://pilotwardrobe.test/hangar/orders/x']]);
         $mail->assertSeeInHtml('Payment secured')->assertSeeInText('Track order: https://pilotwardrobe.test/hangar/orders/x')->assertHasSubject('Order #PW-1 confirmed');
+    }
+
+    public function test_every_email_has_the_logo_in_its_header(): void
+    {
+        $content = ['subject' => 'Hi', 'heading' => 'Hello', 'lines' => ['Line'], 'cta' => null];
+        $this->assertFileExists(public_path('images/email-logo.png'));
+
+        (new TransactionalMail($content))->assertSeeInHtml('<img src="'.asset('images/email-logo.png').'"', false)
+            ->assertSeeInHtml('alt="Pilotwardrobe"', false);
+
+        config(['mail.logo_url' => 'https://cdn.example.com/logo.png']);
+        (new TransactionalMail($content))->assertSeeInHtml('<img src="https://cdn.example.com/logo.png"', false);
     }
 
     public function test_cloudinary_builds_transformation_urls_without_api_calls(): void

@@ -44,6 +44,7 @@ final class TransactionalMail extends Mailable
                 'cta' => $this->content['cta'],
                 'unsubscribeUrl' => $this->unsubscribable ? config('platform.frontend_url').'/hangar/settings/notifications' : null,
                 'frontendUrl' => config('platform.frontend_url'),
+                'logoUrl' => config('mail.logo_url') ?: asset('images/email-logo.png'),
             ],
         );
     }
