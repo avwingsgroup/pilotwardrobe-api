@@ -25,6 +25,12 @@ _ide_helper.php
 
 # Design mockups (~100 MB of PNG frames); shared outside git. Listed in docs/design-screen-inventory.md.
 /docs/pilotwardrobe-designs/
+
+# Firebase files: the service-account key is a secret; google-services.json belongs to the mobile app.
+google-services.json
+GoogleService-Info.plist
+*firebase-adminsdk*.json
+firebase-service-account*.json
 Homestead.json
 Homestead.yaml
 Thumbs.db

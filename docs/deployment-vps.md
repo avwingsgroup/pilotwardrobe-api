@@ -517,6 +517,65 @@ deploy$ install -m 755 /var/www/pilotwardrobe-api/current/deploy/vps/deploy.sh /
 
 If SSH on the server is restricted to certain IP addresses (provider firewall or `ufw allow from …`), GitHub's runners will be blocked: their IPs change, so key-only access (as set up here) is the practical choice.
 
+---
+
+## 17. Temporary demo data for testing (and removing it)
+
+To try the storefront end to end before launch, you can load the same demo data as local development: six member accounts, 20 listings with photos across all home-page sections, a completed order with a review, an open offer and a conversation. Staff demo accounts are **not** created on a server.
+
+The demo data is removed by **restoring a database backup taken just before seeding**. Deleting it row by row is not possible: orders, ledger entries and audit records are protected against deletion by design. So treat the test window as disposable:
+
+- Anything created between the backup and the restore (real sign-ups, settings changes, admin edits) is rolled back too. Do this before launch, or in a quiet window.
+- The demo accounts use the public password `Password1`. Keep the window short, and don't take real payments with them.
+- While seeding, notifications are written to the log instead of being sent (the demo e-mails and phone numbers aren't real customers).
+
+Run everything as the app user, from the app folder (replace `/var/www/pilotwardrobe-api` and the database name if yours differ):
+
+**1. Back up the database**
+
+```bash
+deploy$ BACKUP=/var/backups/pilotwardrobe/before-demo-$(date +%F-%H%M).dump
+deploy$ sudo -u postgres sh -c "pg_dump -Fc pilotwardrobe > $BACKUP" && sudo ls -lh $BACKUP && echo "$BACKUP"
+```
+
+Note the file name it prints; you need it in step 5. (`/var/backups/pilotwardrobe` is created in §13; if you skipped that, run `sudo mkdir -p /var/backups/pilotwardrobe && sudo chown postgres:postgres /var/backups/pilotwardrobe` first.)
+
+**2. Seed the demo data**
+
+```bash
+deploy$ cd /var/www/pilotwardrobe-api/current
+deploy$ php artisan demo:production seed
+```
+
+It asks you to confirm the backup, uploads the listing photos to Cloudinary, and lists the demo logins (`pilot@example.com`, `buyer@example.com`, … with password `Password1`).
+
+**3. Test.** Deploys keep working normally during the window.
+
+**4. Remove the demo photos from Cloudinary** (must run *before* the restore, while the database still knows which files are demo):
+
+```bash
+deploy$ php artisan demo:production cleanup
+```
+
+**5. Restore the backup** (removes every demo row in one transaction; if anything fails, nothing changes):
+
+```bash
+deploy$ sudo supervisorctl stop pilotwardrobe-horizon
+deploy$ sudo -u postgres pg_restore --clean --if-exists --single-transaction -d pilotwardrobe /var/backups/pilotwardrobe/before-demo-YYYY-MM-DD-HHMM.dump
+deploy$ php artisan cache:clear
+deploy$ sudo supervisorctl start pilotwardrobe-horizon
+```
+
+**6. Check it's gone:**
+
+```bash
+deploy$ php artisan tinker --execute="echo App\Models\Listing::count(), ' listings, ', App\Models\User::where('email', 'like', '%@example.com')->count(), ' demo users';"
+#   0 listings, 0 demo users
+deploy$ curl -s https://api.YOURDOMAIN.com/health
+```
+
+Members who signed in during the test have sessions that no longer match any user; they are simply signed out.
+
 ## Troubleshooting
 
 | Symptom | Likely cause and fix |

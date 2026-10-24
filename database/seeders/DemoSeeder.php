@@ -46,13 +46,25 @@ final class DemoSeeder extends Seeder
 {
     private const PASSWORD = 'Password1';
 
+    /** Every account this seeder creates (members first, then staff); used by `demo:production cleanup`. */
+    public const EMAILS = [
+        'official@example.com', 'pilot@example.com', 'aviator@example.com', 'newbie@example.com',
+        'photographer@example.com', 'buyer@example.com', 'admin@example.com', 'finance@example.com', 'super@example.com',
+    ];
+
+    /** Set only by `php artisan demo:production seed`, for a temporary, restorable production test. */
+    public static bool $allowInProduction = false;
+
+    /** Staff demo logins are skipped in production: publicly known staff credentials must never exist there. */
+    public static bool $includeStaff = true;
+
     /** @var array<string, User> */
     private array $users = [];
 
     public function run(): void
     {
-        if (app()->isProduction()) {
-            throw new RuntimeException('DemoSeeder must never run in production.');
+        if (app()->isProduction() && ! self::$allowInProduction) {
+            throw new RuntimeException('DemoSeeder must never run in production (use `php artisan demo:production seed` for a temporary test).');
         }
 
         $this->users();
@@ -117,6 +129,9 @@ final class DemoSeeder extends Seeder
         ]);
 
         // Staff (sign in with STAFF_PASSWORD_LOGIN=true locally; production uses Google SSO + security key).
+        if (! self::$includeStaff) {
+            return;
+        }
         $ts = StaffRole::query()->where('slug', 'trust_safety')->first();
         $finance = StaffRole::query()->where('slug', 'finance')->first();
         $make('admin', ['first_name' => 'Amaka', 'last_name' => 'Nwosu', 'username' => 'staff_amaka', 'email' => 'admin@example.com'], UserRole::Admin)

@@ -25,6 +25,8 @@
         <env name="APP_ENV" value="testing"/>
         <env name="APP_DEBUG" value="false"/>
         <env name="APP_FRONTEND_URL" value="https://pilotwardrobe.test"/>
+        <!-- Blank: CORS falls back to APP_FRONTEND_URL, whatever a developer's .env allows. -->
+        <env name="CORS_ALLOWED_ORIGINS" value=""/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
