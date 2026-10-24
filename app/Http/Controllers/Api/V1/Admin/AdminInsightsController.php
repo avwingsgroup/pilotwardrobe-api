@@ -77,7 +77,7 @@ final class AdminInsightsController extends Controller
             $orders = DB::table('orders')->whereNotNull('paid_at')->where('paid_at', '>=', $since)->where('currency', 'USD');
             $series = (clone $orders)->selectRaw("to_char(date_trunc('{$bucket}', paid_at), 'YYYY-MM-DD') as date, sum(items_amount) as gmv, count(*) as orders, sum(platform_fee_amount + buyer_protection_amount + swap_fee_amount) as revenue")
                 ->groupBy('date')->orderBy('date')->get()
-                ->map(fn ($r) => ['date' => $r->date, 'gmv' => (int) $r->gmv, 'orders' => (int) $r->orders, 'revenue' => (int) $r->revenue]);
+                ->map(fn ($r) => ['date' => $r->date, 'gmv' => (int) $r->gmv, 'orders' => (int) $r->orders, 'revenue' => (int) $r->revenue])->all();
 
             $byCategory = DB::table('order_items as oi')->join('orders as o', 'o.id', '=', 'oi.order_id')->join('listings as l', 'l.id', '=', 'oi.listing_id')
                 ->leftJoin('categories as c', 'c.id', '=', 'l.category_id')
@@ -105,8 +105,8 @@ final class AdminInsightsController extends Controller
                     'new_listings' => $listings,
                     'conversion_rate' => $signups > 0 ? round($buyers / $signups * 100, 1) : null,
                 ],
-                'by_category' => $byCategory->map(fn ($r) => ['name' => $r->name, 'gmv' => (int) $r->gmv, 'items' => (int) $r->items])->values(),
-                'by_country' => $byCountry->map(fn ($r) => ['country_code' => $r->country, 'gmv' => (int) $r->gmv, 'orders' => (int) $r->orders])->values(),
+                'by_category' => $byCategory->map(fn ($r) => ['name' => $r->name, 'gmv' => (int) $r->gmv, 'items' => (int) $r->items])->values()->all(),
+                'by_country' => $byCountry->map(fn ($r) => ['country_code' => $r->country, 'gmv' => (int) $r->gmv, 'orders' => (int) $r->orders])->values()->all(),
             ];
         }));
     }

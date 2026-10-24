@@ -34,7 +34,7 @@ final class HomeController extends Controller
 
             $slides = HeroSlide::query()->where('active', true)->orderBy('position')->get()
                 ->filter(fn (HeroSlide $s) => ($s->published['status'] ?? 'live') !== 'draft')
-                ->map(fn (HeroSlide $s) => (new HeroSlideResource($s))->resolve($request))->values();
+                ->map(fn (HeroSlide $s) => (new HeroSlideResource($s))->resolve($request))->values()->all();
 
             $categories = CategoryResource::collection(
                 Category::query()->whereNull('parent_id')->where('is_active', true)->with(['image', 'children'])->orderBy('position')->get()
@@ -73,7 +73,7 @@ final class HomeController extends Controller
                     'photographer' => $l->seller->displayName(),
                     'image' => MediaAssetPresenter::make($l->images->first(), $l->title),
                     'to' => $l->publicPath(),
-                ])->values();
+                ])->values()->all();
 
             return [
                 'hero_slides' => $slides,

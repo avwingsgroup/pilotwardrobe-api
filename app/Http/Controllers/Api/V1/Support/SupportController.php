@@ -36,7 +36,7 @@ final class SupportController extends Controller
     {
         $payload = Cache::remember('help:summary', 300, function () {
             $popular = FaqStat::query()->orderByDesc('views')->limit(5)->get()
-                ->map(fn (FaqStat $f) => ['faq_id' => $f->faq_id, 'question' => $f->question, 'tag' => $f->tag, 'views' => (int) $f->views])->values();
+                ->map(fn (FaqStat $f) => ['faq_id' => $f->faq_id, 'question' => $f->question, 'tag' => $f->tag, 'views' => (int) $f->views])->values()->all();
 
             $since = now()->subDays(29)->startOfDay();
             $rows = StatusCheck::query()->where('day', '>=', $since->toDateString())->get()->groupBy('component');
