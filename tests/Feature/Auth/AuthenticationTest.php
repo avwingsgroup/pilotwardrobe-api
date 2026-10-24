@@ -225,6 +225,20 @@ final class AuthenticationTest extends TestCase
 
         $this->postJson('/api/v1/auth/login', ['email' => 'admin@pilotwardrobe.com', 'password' => 'Password1'])
             ->assertStatus(422)->assertJsonPath('errors.email.0', 'Staff accounts sign in through the Control Tower.');
+        $this->postJson('/api/v1/auth/email-lookup', ['email' => 'admin@pilotwardrobe.com'])
+            ->assertOk()->assertJsonPath('data.exists', false);
+    }
+
+    public function test_staff_password_login_when_enabled_for_development(): void
+    {
+        config(['platform.auth.allow_staff_password_login' => true]);
+        User::factory()->superAdmin()->create(['email' => 'super@example.com']);
+
+        $this->postJson('/api/v1/auth/email-lookup', ['email' => 'super@example.com'])
+            ->assertOk()->assertJsonPath('data.exists', true)->assertJsonPath('data.methods', ['password']);
+        $token = $this->postJson('/api/v1/auth/login', ['email' => 'super@example.com', 'password' => 'Password1'])
+            ->assertOk()->json('data.access_token');
+        $this->withToken($token)->getJson('/api/v1/admin/overview')->assertOk();
     }
 
     public function test_email_lookup(): void

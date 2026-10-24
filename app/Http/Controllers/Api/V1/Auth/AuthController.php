@@ -50,7 +50,10 @@ final class AuthController extends Controller
     {
         $user = $this->findByEmail($request->validated('email'));
 
-        if ($user === null || $user->status === UserStatus::Suspended || $user->isStaff()) {
+        // Staff are hidden unless staff password login is enabled (local/dev), so the SPA's
+        // email-first sign-in can still reach the password step for demo staff accounts.
+        $staffHidden = $user?->isStaff() && ! config('platform.auth.allow_staff_password_login');
+        if ($user === null || $user->status === UserStatus::Suspended || $staffHidden) {
             return ApiResponse::ok(['exists' => false, 'methods' => []]);
         }
 
@@ -90,7 +93,8 @@ final class AuthController extends Controller
             $this->audit->log('USER.REACTIVATED', $user, 'Signed in after deactivation', actor: $user);
         }
 
-        if ($user->hasTwoFactorEnabled() && ! $this->twoFactor->isTrustedDevice($user, $request)) {
+        // Staff give a code on every sign-in; "trust this device" applies to members only.
+        if ($user->hasTwoFactorEnabled() && ($user->isStaff() || ! $this->twoFactor->isTrustedDevice($user, $request))) {
             $challengeId = $this->twoFactor->createChallenge($user, ['remember' => (bool) $request->boolean('remember')]);
 
             return ApiResponse::ok([
@@ -130,7 +134,7 @@ final class AuthController extends Controller
         $this->audit->log('AUTH.TWO_FACTOR_PASSED', $user, "Method: {$method}", actor: $user);
 
         $response = $this->authenticated($user, $request, (bool) ($challenge['remember'] ?? false));
-        if ($request->boolean('trust_device')) {
+        if ($request->boolean('trust_device') && ! $user->isStaff()) {
             $response->withCookie($this->twoFactor->trustDevice($user, $request));
         }
 
@@ -316,6 +320,10 @@ final class AuthController extends Controller
         }
         if ($user->isStaff() && ! config('platform.auth.allow_staff_password_login')) {
             throw ApiException::validation(['email' => 'Staff accounts sign in through the Control Tower.'], 'Staff accounts sign in through the Control Tower.');
+        }
+        if ($user->isStaff() && config('platform.auth.staff_password_requires_two_factor') && ! $user->hasTwoFactorEnabled()) {
+            $message = 'This staff account needs an authenticator app before it can sign in. Ask an administrator to run staff:credentials.';
+            throw ApiException::validation(['email' => $message], $message);
         }
     }
 

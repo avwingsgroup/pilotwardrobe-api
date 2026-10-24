@@ -580,6 +580,33 @@ deploy$ curl -s https://api.YOURDOMAIN.com/health
 
 Members who signed in during the test have sessions that no longer match any user; they are simply signed out.
 
+## 18. Staff sign-in without Google Workspace
+
+The Control Tower's standard sign-in is Google Workspace + security key, which needs your company e-mail on Google Workspace. Without it, staff sign in on the normal login page with **password + a code from an authenticator app** (Google Authenticator, Microsoft Authenticator, Authy, 1Password…). In production the code is mandatory for staff and asked on every sign-in.
+
+**1. Set the password and pair the authenticator app** for each staff member (they need their phone at hand):
+
+```bash
+deploy$ cd /var/www/pilotwardrobe-api/current
+deploy$ php artisan staff:credentials admin@example.com
+```
+
+It asks for a password (12+ characters, upper and lower case, a number and a symbol), shows a setup key to type into the authenticator app, checks a code from the app, and prints 10 one-time backup codes: store those safely. Re-run it to reset a lost phone or a forgotten password (`--no-password` or `--no-two-factor` to do just one).
+
+**2. Turn on staff password sign-in** in `shared/.env`, then apply:
+
+```dotenv
+STAFF_PASSWORD_LOGIN=true
+```
+
+```bash
+deploy$ php artisan config:cache && sudo systemctl reload php8.5-fpm
+```
+
+**3. Sign in** at `https://example.com/auth/login` with the staff e-mail and password, enter the 6-digit code, then open `/admin`.
+
+Staff accounts without a paired authenticator app are refused, so a leaked password alone is not enough. New staff are still created with `staff:create-super-admin` or invited from Control Tower → Team, then given credentials with `staff:credentials`.
+
 ## Troubleshooting
 
 | Symptom | Likely cause and fix |

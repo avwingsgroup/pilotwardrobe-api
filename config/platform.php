@@ -44,6 +44,9 @@ return [
         'impersonation_minutes' => 15,
         // Staff normally sign in with Google Workspace + security key. Allow password login only for local/dev.
         'allow_staff_password_login' => (bool) env('STAFF_PASSWORD_LOGIN', false),
+        // With staff password login on, staff must also have an authenticator app (set up with
+        // `php artisan staff:credentials`). On by default in production; local demo staff skip it.
+        'staff_password_requires_two_factor' => (bool) env('STAFF_PASSWORD_REQUIRES_2FA', env('APP_ENV') === 'production'),
     ],
 
     'listings' => [
